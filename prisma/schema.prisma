@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum CategoryGroup {
+  FIXED
+  FLEXIBLE
+}
+
+enum AccountType {
+  CASH
+  BANK
+  WALLET
+}
+
+enum PayCycle {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+model User {
+  id                 String        @id @default(uuid())
+  name               String
+  email              String        @unique
+  password           String
+  currencyPreference String        @default("NGN")
+  payCyclePreference PayCycle      @default(MONTHLY)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  transactions       Transaction[]
+  accounts           Account[]
+  budgets            Budget[]
+}
+
+model Category {
+  id               String        @id @default(uuid())
+  name             String
+  type             TransactionType
+  group            CategoryGroup
+  isCustom         Boolean       @default(false)
+  parentCategoryId String?
+  parentCategory   Category?     @relation("SubCategories", fields: [parentCategoryId], references: [id])
+  subCategories    Category[]    @relation("SubCategories")
+  transactions     Transaction[]
+  budgets          Budget[]
+
+  @@unique([name, type])
+}
+
+model Account {
+  id           String        @id @default(uuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id])
+  name         String
+  type         AccountType
+  currency     String        @default("NGN")
+  transactions Transaction[]
+
+  @@unique([userId, name])
+}
+
+model Transaction {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  date          DateTime  @default(now())
+  type          TransactionType
+  categoryId    String
+  category      Category  @relation(fields: [categoryId], references: [id])
+  subcategory   String?
+  accountId     String
+  account       Account   @relation(fields: [accountId], references: [id])
+  amount        Float
+  paymentMethod String?
+  notes         String?
+  isRecurring   Boolean   @default(false)
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Budget {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  categoryId String
+  category   Category  @relation(fields: [categoryId], references: [id])
+  payCycle   PayCycle
+  amount     Float
+
+  @@unique([userId, categoryId])
+}
