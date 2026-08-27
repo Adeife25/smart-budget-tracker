@@ -15,6 +15,8 @@ jobs:
           fetch-depth: 0
       - name: Gitleaks - scan for secrets
         uses: gitleaks/gitleaks-action@v2
+        with:
+          scan-path: .
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -76,6 +78,9 @@ jobs:
 
       - name: Run Prisma migrations
         run: npx prisma migrate deploy
+
+      - name: Seed default categories
+        run: npx prisma db seed
 
       - name: Lint
         run: npm run lint
