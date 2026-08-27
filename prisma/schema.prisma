@@ -11,6 +11,18 @@ enum TransactionType {
   EXPENSE
 }
 
+enum NotificationType {
+  BUDGET
+  EMERGENCY_FUND
+  SYSTEM
+}
+
+enum TransactionStatus {
+  COMPLETED
+  PENDING
+  FAILED
+}
+
 enum CategoryGroup {
   FIXED
   FLEXIBLE
@@ -29,17 +41,54 @@ enum PayCycle {
 }
 
 model User {
-  id                 String        @id @default(uuid())
+  id                 String              @id @default(uuid())
   name               String
-  email              String        @unique
+  email              String              @unique
   password           String
-  currencyPreference String        @default("NGN")
-  payCyclePreference PayCycle      @default(MONTHLY)
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  emailVerified      Boolean             @default(false)
+  verifiedAt         DateTime?
+  currencyPreference String              @default("NGN")
+  payCyclePreference PayCycle            @default(MONTHLY)
+  budgetAlerts       Boolean             @default(true)
+  weeklyDigest       Boolean             @default(true)
+  moneyTips          Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
   transactions       Transaction[]
   accounts           Account[]
   budgets            Budget[]
+  refreshTokens      RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  emergencyFund      EmergencyFund?
+  notifications      Notification[]
+  categorySelections UserCategorySelection[]
+  categories         Category[]
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Category {
@@ -48,13 +97,27 @@ model Category {
   type             TransactionType
   group            CategoryGroup
   isCustom         Boolean       @default(false)
+  userId           String?
+  user             User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  selectedByUsers  UserCategorySelection[]
   parentCategoryId String?
   parentCategory   Category?     @relation("SubCategories", fields: [parentCategoryId], references: [id])
   subCategories    Category[]    @relation("SubCategories")
   transactions     Transaction[]
   budgets          Budget[]
 
-  @@unique([name, type])
+  @@unique([name, type, userId])
+}
+
+model UserCategorySelection {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+
+  @@unique([userId, categoryId])
 }
 
 model Account {
@@ -80,7 +143,8 @@ model Transaction {
   subcategory   String?
   accountId     String
   account       Account   @relation(fields: [accountId], references: [id])
-  amount        Float
+  amount        Decimal   @db.Decimal(12, 2)
+  status        TransactionStatus @default(COMPLETED)
   paymentMethod String?
   notes         String?
   isRecurring   Boolean   @default(false)
@@ -96,7 +160,30 @@ model Budget {
   categoryId String
   category   Category  @relation(fields: [categoryId], references: [id])
   payCycle   PayCycle
-  amount     Float
+  amount     Decimal   @db.Decimal(12, 2)
 
   @@unique([userId, categoryId])
+}
+
+model EmergencyFund {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetAmount  Decimal  @db.Decimal(12, 2)
+  currentAmount Decimal  @default(0) @db.Decimal(12, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType @default(SYSTEM)
+  title     String
+  message   String
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt])
 }

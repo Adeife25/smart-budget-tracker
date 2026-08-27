@@ -1,12 +1,5 @@
-import {
-  IsString,
-  IsEmail,
-  MinLength,
-  IsOptional,
-  IsEnum,
-} from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PayCycle } from '@prisma/client';
+import { IsString, IsEmail, MinLength } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterDto {
   @ApiProperty({ example: 'John Doe' })
@@ -22,9 +15,4 @@ export class RegisterDto {
   @IsString()
   @MinLength(8)
   password: string;
-
-  @ApiPropertyOptional({ enum: PayCycle, default: PayCycle.MONTHLY })
-  @IsOptional()
-  @IsEnum(PayCycle)
-  payCyclePreference?: PayCycle;
 }

@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN "budgetAlerts" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "weeklyDigest" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "moneyTips" BOOLEAN NOT NULL DEFAULT true;

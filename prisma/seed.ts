@@ -1,6 +1,10 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+});
 
 const defaultCategories = [
   // Fixed Expenses
@@ -22,18 +26,32 @@ const defaultCategories = [
   { name: 'Freelance', type: 'INCOME' as const, group: 'FLEXIBLE' as const },
   { name: 'Business', type: 'INCOME' as const, group: 'FLEXIBLE' as const },
   { name: 'Investment', type: 'INCOME' as const, group: 'FLEXIBLE' as const },
+  { name: 'Bonus', type: 'INCOME' as const, group: 'FLEXIBLE' as const },
   { name: 'Other Income', type: 'INCOME' as const, group: 'FLEXIBLE' as const },
+
+  // Flexible Expenses (continued)
+  { name: 'Shopping', type: 'EXPENSE' as const, group: 'FLEXIBLE' as const },
+  { name: 'Savings Contributions', type: 'EXPENSE' as const, group: 'FIXED' as const },
 ];
 
 async function main() {
   console.log('Seeding default categories...');
 
   for (const category of defaultCategories) {
-    await prisma.category.upsert({
-      where: { name_type: { name: category.name, type: category.type } },
-      update: {},
-      create: category,
+    // userId is null for system defaults; the compound unique treats NULLs
+    // as distinct per user, so upsert by name+type among defaults.
+    const existing = await prisma.category.findFirst({
+      where: { name: category.name, type: category.type, userId: null },
     });
+
+    if (existing) {
+      await prisma.category.update({
+        where: { id: existing.id },
+        data: { group: category.group },
+      });
+    } else {
+      await prisma.category.create({ data: category });
+    }
   }
 
   console.log(`Seeded ${defaultCategories.length} categories.`);

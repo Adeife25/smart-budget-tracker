@@ -8,11 +8,14 @@ import {
   Param,
   UseGuards,
   Request,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { BudgetsService } from './budgets.service';
 import { CreateBudgetDto } from './dto/create-budget.dto';
+import { UpdateBudgetDto } from './dto/update-budget.dto';
 import { JwtAuthGuard } from '../auth/auth.guard';
+import { RedisCacheInterceptor } from '../common/interceptors/redis-cache.interceptor';
 
 @ApiTags('Budgets')
 @Controller('budgets')
@@ -22,12 +25,17 @@ export class BudgetsController {
   constructor(private readonly budgetsService: BudgetsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List all budgets for the current user' })
+  @UseInterceptors(RedisCacheInterceptor)
+  @ApiOperation({
+    summary:
+      'List budgets with totals (total budget, total spent, remaining) and per-budget spend, percentage and status',
+  })
   findAll(@Request() req: { user: { id: string } }) {
     return this.budgetsService.findAll(req.user.id);
   }
 
   @Get(':id')
+  @UseInterceptors(RedisCacheInterceptor)
   @ApiOperation({ summary: 'Get a budget by id' })
   findOne(@Param('id') id: string, @Request() req: { user: { id: string } }) {
     return this.budgetsService.findOne(id, req.user.id);
@@ -46,7 +54,7 @@ export class BudgetsController {
   @ApiOperation({ summary: 'Update a budget' })
   update(
     @Param('id') id: string,
-    @Body() dto: Partial<CreateBudgetDto>,
+    @Body() dto: UpdateBudgetDto,
     @Request() req: { user: { id: string } },
   ) {
     return this.budgetsService.update(id, req.user.id, dto);

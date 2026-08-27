@@ -10,15 +10,11 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBearerAuth,
-  ApiQuery,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
+import { ListTransactionsQueryDto } from './dto/list-transactions-query.dto';
 import { JwtAuthGuard } from '../auth/auth.guard';
 
 @ApiTags('Transactions')
@@ -29,21 +25,15 @@ export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List all transactions for the current user' })
-  @ApiQuery({ name: 'type', required: false })
-  @ApiQuery({ name: 'categoryId', required: false })
-  @ApiQuery({ name: 'accountId', required: false })
+  @ApiOperation({
+    summary:
+      'List transactions with search, filters and pagination (Figma transaction table)',
+  })
   findAll(
     @Request() req: { user: { id: string } },
-    @Query('type') type?: string,
-    @Query('categoryId') categoryId?: string,
-    @Query('accountId') accountId?: string,
+    @Query() query: ListTransactionsQueryDto,
   ) {
-    return this.transactionsService.findAll(req.user.id, {
-      type,
-      categoryId,
-      accountId,
-    });
+    return this.transactionsService.findAll(req.user.id, query);
   }
 
   @Get(':id')

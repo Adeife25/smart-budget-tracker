@@ -7,10 +7,10 @@ COPY prisma ./prisma/
 COPY prisma.config.ts ./
 RUN npm ci
 
+RUN npx prisma generate
+
 COPY . .
 RUN npm run build
-
-RUN npx prisma generate
 
 FROM node:20-alpine
 
@@ -21,9 +21,8 @@ COPY prisma.config.ts ./
 RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/generated ./generated
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 EXPOSE 3000
 
-CMD ["node", "dist/main"]
+CMD ["node", "dist/src/main"]
