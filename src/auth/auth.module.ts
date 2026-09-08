@@ -28,8 +28,24 @@ import { resolveSecret } from '../config/secrets';
   providers: [
     AuthService,
     JwtStrategy,
-    GoogleStrategy,
-    GithubStrategy,
+    {
+      provide: GoogleStrategy,
+      useFactory: (configService: ConfigService, oauthService: OAuthService) => {
+        return configService.get('GOOGLE_CLIENT_ID')
+          ? new GoogleStrategy(configService, oauthService)
+          : undefined;
+      },
+      inject: [ConfigService, OAuthService],
+    },
+    {
+      provide: GithubStrategy,
+      useFactory: (configService: ConfigService, oauthService: OAuthService) => {
+        return configService.get('GITHUB_CLIENT_ID')
+          ? new GithubStrategy(configService, oauthService)
+          : undefined;
+      },
+      inject: [ConfigService, OAuthService],
+    },
     OAuthService,
   ],
   exports: [AuthService],
