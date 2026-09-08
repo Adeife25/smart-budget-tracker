@@ -41,6 +41,12 @@ export class SettingsService {
       where: { id: userId },
     });
 
+    if (!user.password) {
+      throw new UnauthorizedException(
+        'This account uses social login. Please sign in with Google or GitHub.',
+      );
+    }
+
     const isCurrentValid = await bcrypt.compare(
       dto.currentPassword,
       user.password,

@@ -5,6 +5,11 @@ const REQUIRED_IN_PRODUCTION = [
   'JWT_VERIFY_SECRET',
 ] as const;
 
+const OAUTH_CONFIG_KEYS = [
+  ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_CALLBACK_URL'],
+  ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET', 'GITHUB_CALLBACK_URL'],
+] as const;
+
 const KNOWN_PLACEHOLDER_SECRETS = new Set([
   '',
   'change-me-in-production',
@@ -50,6 +55,21 @@ export function validateEnv(
       warnings.push(
         'FRONTEND_URL should point to the public app URL in production',
       );
+    }
+
+    for (const group of OAUTH_CONFIG_KEYS) {
+      const values = group.map((key: string) => config[key]);
+      const hasAny = values.some(
+        (v) => typeof v === 'string' && v.trim() !== '',
+      );
+      if (hasAny) {
+        for (let i = 0; i < group.length; i++) {
+          const value = config[group[i] as string];
+          if (typeof value !== 'string' || !value.trim()) {
+            errors.push(`${group[i]} is required when enabling ${group[0]}`);
+          }
+        }
+      }
     }
   }
 

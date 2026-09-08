@@ -76,6 +76,12 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (!user.password) {
+      throw new UnauthorizedException(
+        'This account uses social login. Please sign in with Google or GitHub.',
+      );
+    }
+
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
 
     if (!isPasswordValid) {
@@ -238,10 +244,7 @@ export class AuthService {
     return { message: 'Password reset successfully' };
   }
 
-  private async issueTokens(
-    userId: string,
-    email: string,
-  ): Promise<AuthTokens> {
+  async issueTokens(userId: string, email: string): Promise<AuthTokens> {
     const accessToken = this.signAccessToken(userId, email);
     const refreshToken = this.signRefreshToken(userId, email);
 
@@ -293,11 +296,11 @@ export class AuthService {
     return createHash('sha256').update(token).digest('hex');
   }
 
-  private normalizeEmail(email: string): string {
+  normalizeEmail(email: string): string {
     return email.trim().toLowerCase();
   }
 
-  private sanitizeUser(user: {
+  sanitizeUser(user: {
     id: string;
     name: string;
     email: string;

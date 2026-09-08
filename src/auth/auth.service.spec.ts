@@ -206,6 +206,20 @@ describe('AuthService', () => {
         service.login({ email: 'john@example.com', password: 'wrongpass' }),
       ).rejects.toThrow(UnauthorizedException);
     });
+
+    it('throws UnauthorizedException for a social-login user with no password', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...baseUser,
+        password: null,
+      });
+
+      await expect(
+        service.login({ email: 'john@example.com', password: 'password123' }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(mockedBcrypt.compare).not.toHaveBeenCalled();
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('refresh', () => {

@@ -5,9 +5,13 @@ import {
   Get,
   UseGuards,
   Request,
+  Res,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
+import { ConfigService } from '@nestjs/config';
+import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -22,7 +26,10 @@ import { JwtAuthGuard } from './auth.guard';
 @Throttle({ default: { limit: 30, ttl: 60_000 } })
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Post('register')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
@@ -87,4 +94,54 @@ export class AuthController {
   ) {
     return req.user;
   }
+
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Start Google OAuth flow (redirect)' })
+  googleAuth() {
+    return;
+  }
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Google OAuth callback (redirects to frontend)' })
+  googleAuthRedirect(
+    @Request() req: { user: AuthResult },
+    @Res() res: Response,
+  ) {
+    this.redirectWithTokens(req.user, res);
+  }
+
+  @Get('github')
+  @UseGuards(AuthGuard('github'))
+  @ApiOperation({ summary: 'Start GitHub OAuth flow (redirect)' })
+  githubAuth() {
+    return;
+  }
+
+  @Get('github/callback')
+  @UseGuards(AuthGuard('github'))
+  @ApiOperation({ summary: 'GitHub OAuth callback (redirects to frontend)' })
+  githubAuthRedirect(
+    @Request() req: { user: AuthResult },
+    @Res() res: Response,
+  ) {
+    this.redirectWithTokens(req.user, res);
+  }
+
+  private redirectWithTokens(result: AuthResult, res: Response): void {
+    const base = this.configService.get<string>(
+      'FRONTEND_URL',
+      'http://localhost:3000',
+    );
+    const redirectUrl = `${base}/oauth/callback?accessToken=${encodeURIComponent(
+      result.accessToken,
+    )}&refreshToken=${encodeURIComponent(result.refreshToken)}`;
+    res.redirect(redirectUrl);
+  }
+}
+
+interface AuthResult {
+  accessToken: string;
+  refreshToken: string;
 }
